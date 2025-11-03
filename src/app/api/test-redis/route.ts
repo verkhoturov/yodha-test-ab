@@ -1,75 +1,68 @@
-import { NextApiRequest, NextApiResponse } from 'next'
+import { NextResponse } from 'next/server'
 import { createClient } from 'redis'
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' })
-  }
-
+export async function GET() {
   const client = createClient({
-    url: process.env.REDIS_URL,
-    socket: {
-      connectTimeout: 8000,
-      timeout: 8000
-    }
+    url: process.env.REDIS_URL
   })
 
   try {
-    const startTime = Date.now()
     await client.connect()
-    const connectTime = Date.now() - startTime
 
-    // Получаем различную информацию о Redis
-    const [pingResult, dbSize, info, memoryInfo] = await Promise.all([
-      client.ping(),
+    // 1. Получаем базовую информацию о БД
+    const [dbSize, serverInfo] = await Promise.all([
       client.dbSize(),
-      client.info('server'),
-      client.info('memory')
+      client.info('server')
     ])
 
-    const operationTime = Date.now() - startTime - connectTime
+    // 2. Проверяем запись и чтение данных
+    const testData = {
+      check: 'persistence',
+      time: new Date().toISOString(),
+      id: Math.random().toString(36).substring(7)
+    }
+
+    const testKey = `quick_check_${Date.now()}`
+    
+    // Записываем
+    await client.setEx(testKey, 60, JSON.stringify(testData))
+    
+    // Читаем
+    const result = await client.get(testKey)
+    const parsedResult = result ? JSON.parse(result) : null
+    
+    // Проверяем
+    const dataPersisted = parsedResult && parsedResult.id === testData.id
 
     await client.quit()
 
-    // Парсим информацию
-    const redisVersion = info.match(/redis_version:([^\r\n]+)/)?.[1] || 'unknown'
-    const usedMemory = memoryInfo.match(/used_memory:([^\r\n]+)/)?.[1] || 'unknown'
-    const connectedClients = info.match(/connected_clients:([^\r\n]+)/)?.[1] || 'unknown'
-
-    res.status(200).json({
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      connection: {
-        host: process.env.REDIS_URL?.split('@')[1]?.split(':')[0] || 'unknown',
-        connectTime: `${connectTime}ms`,
-        totalOperationTime: `${operationTime}ms`
+    return NextResponse.json({
+      status: dataPersisted ? 'ok' : 'error',
+      database: {
+        size: dbSize,
+        version: serverInfo.match(/redis_version:([^\r\n]+)/)?.[1] || 'unknown'
       },
-      metrics: {
-        ping: pingResult,
-        database_size: dbSize,
-        redis_version: redisVersion,
-        used_memory: usedMemory,
-        connected_clients: parseInt(connectedClients)
+      persistence: {
+        working: dataPersisted,
+        test: dataPersisted ? 'passed' : 'failed'
       },
-      environment: process.env.NODE_ENV
+      timestamp: new Date().toISOString()
     })
 
-  } catch (error) {
+  } catch (error: any) {
     try {
       await client.quit()
     } catch {
-      // Ignore quit errors
+      // ignore
     }
 
-    res.status(503).json({
-      status: 'unhealthy',
-      timestamp: new Date().toISOString(),
-      error,
-      redis_url: process.env.NODE_ENV === 'development' ? 
-        process.env.REDIS_URL?.replace(/:[^:@]+@/, ':****@') : 'hidden'
+    return NextResponse.json({
+      status: 'error',
+      message: 'Redis check failed',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    }, {
+      status: 500
     })
   }
 }
