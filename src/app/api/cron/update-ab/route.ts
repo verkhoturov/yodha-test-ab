@@ -2,9 +2,7 @@ import { NextResponse } from 'next/server'
 
 export async function GET() {
   // Получаем URL нашего же приложения
-  const appUrl = process.env.VERCEL_URL 
-    ? `https://${process.env.VERCEL_URL}`
-    : 'http://localhost:3000'
+  const appUrl = 'https://yodha-test-ab.vercel.app';
 
   try {
 
