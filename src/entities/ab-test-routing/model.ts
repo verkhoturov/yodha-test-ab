@@ -1,23 +1,29 @@
-interface Funnel {
+export interface Funnel {
     url: string;
     percent: number;
-  }
-  
-  interface Paywall {
+}
+
+interface Paywall {
     id: string;
     percent: number;
-  }
-  
-  interface RouteConfig {
+}
+
+export interface RouteConfig {
     routeName: string;
     funnels: Funnel[];
     paywalls: Paywall[];
-  }
-  
-  interface Routing {
+}
+
+interface Routing {
     [url: string]: RouteConfig;
-  }
-  
-  export interface FunnelDataResponse {
+}
+
+export interface ABTestRouting {
     routing: Routing;
-  }
+}
+
+export interface ABTestRoutingRedis {
+    data: ABTestRouting;
+    lastUpdated: string;
+    source: string;
+}

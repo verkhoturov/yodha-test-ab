@@ -1,1 +1,2 @@
-export { getABTestRouting } from "./getABTestRouting"; 
+export { getABTestRoutingFromCRM } from './getABTestRoutingFromCRM';
+export { getRoutingDataFromRedis } from './getABTestRoutingFromRedis';

@@ -1,7 +1,7 @@
 {
     "crons": [
       {
-        "path": "/funnel/api/cron/update-ab",
+        "path": "/funnel/api/cron/sync-ab-test-routing",
         "schedule": "20 9 * * *"
       }
     ]
