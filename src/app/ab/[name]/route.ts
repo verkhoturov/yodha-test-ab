@@ -15,13 +15,11 @@ import {
 
 export const dynamic = 'force-dynamic';
 
-// Правильный тип для params в Next.js App Router
 type RouteParams = {
     params: Promise<{ name: string }>;
 };
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
-    // Нужно await для params в Next.js 14+
     const { name } = await params;
     const { origin, search } = new URL(request.url);
 
@@ -91,6 +89,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         if (!bucket) {
             // Выбираем воронку на основе percent
             const selection = selectFunnelByPercent(funnels);
+
             targetFunnel = selection.funnel;
             bucket = selection.bucket;
 
@@ -103,7 +102,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             });
         } else {
             // Если кука уже есть, находим соответствующую воронку
-            const bucketMatch = bucket.match(/Funnel_(\d+)/);
+            const bucketMatch = bucket.match(/^[A-Z]$/);
+
             if (bucketMatch) {
                 const funnelIndex = parseInt(bucketMatch[1]) - 1;
                 targetFunnel = funnels[funnelIndex] || funnels[0];
@@ -117,6 +117,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
         // Собираем целевой URL
         const targetUrl = new URL(`${origin}${targetFunnel.url}${search || ''}`);
+
         targetUrl.searchParams.set('ab_test_group', bucket);
         targetUrl.searchParams.set('ab_test_name', AB_TEST_NAME);
 
@@ -139,6 +140,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     } catch (error: unknown) {
         console.error('Error in funnel AB routing:', error);
         const { origin } = new URL(request.url);
+
         return NextResponse.redirect(`${origin}/500`, { status: 302 });
     }
 }

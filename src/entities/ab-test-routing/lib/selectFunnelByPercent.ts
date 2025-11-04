@@ -1,5 +1,12 @@
 import { Funnel } from '../model';
 
+const bucketNames: Record<number, string> = {
+    1: 'A',
+    2: 'B',
+    3: 'D',
+    4: 'C',
+};
+
 export const selectFunnelByPercent = (funnels: Funnel[]): { funnel: Funnel; bucket: string } => {
     const totalPercent = funnels.reduce((sum, funnel) => sum + funnel.percent, 0);
     const random = Math.random() * totalPercent;
@@ -13,11 +20,11 @@ export const selectFunnelByPercent = (funnels: Funnel[]): { funnel: Funnel; buck
         if (random <= cumulative) {
             return {
                 funnel,
-                bucket: `Funnel_${i + 1}`, // Funnel_1, Funnel_2 и т.д.
+                bucket: bucketNames[i] || 'X',
             };
         }
     }
 
     // Fallback - первая воронка
-    return { funnel: funnels[0], bucket: 'Funnel_1' };
+    return { funnel: funnels[0], bucket: bucketNames[0] };
 };
