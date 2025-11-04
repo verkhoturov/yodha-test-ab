@@ -5,19 +5,29 @@ import { type NextRequest } from 'next/server';
 import { log } from '@/shared/utils';
 import { collectRequestMeta } from '@/shared/utils';
 import {
-    getRoutingDataFromRedis,
+    Routing,
     Funnel,
+    getRoutingDataFromRedis,
+    getABTestRoutingFromCRM,
     selectFunnelByPercent,
     getConfigFromRouting,
 } from '@/entities/ab-test-routing';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest, { params }: { params: { name: string } }) {
-    const { name } = params;
+// Правильный тип для params в Next.js App Router
+type RouteParams = {
+    params: Promise<{ name: string }>;
+};
+
+export async function GET(request: NextRequest, { params }: RouteParams) {
+    // Нужно await для params в Next.js 14+
+    const { name } = await params;
     const { origin, search } = new URL(request.url);
 
     const meta = collectRequestMeta(request);
+
+    let routingList: Routing | null;
 
     try {
         // 1. Получаем данные о роутах из Redis
@@ -25,11 +35,16 @@ export async function GET(request: NextRequest, { params }: { params: { name: st
 
         if (!routingData || !routingData.data?.routing) {
             console.error('No AB test routing data found in Redis for slug:', name);
-            return NextResponse.redirect(`${origin}/404`, { status: 302 });
+
+            // fallback если что-то с Redis, забираем данные прямо из CRM
+            const routingData = await getABTestRoutingFromCRM();
+            routingList = routingData.routing;
+        } else {
+            routingList = routingData.data.routing;
         }
 
         // 2. Ищем конфигурацию для текущего name
-        const foundConfig = getConfigFromRouting(routingData.data.routing, name);
+        const foundConfig = getConfigFromRouting(routingList, name);
 
         if (!foundConfig) {
             console.error('No routing config found for name:', name);
