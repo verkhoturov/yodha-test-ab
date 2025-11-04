@@ -34,12 +34,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         const routingData = await getRoutingDataFromRedis();
 
         if (!routingData || !routingData.data?.routing) {
-            console.error('No AB test routing data found in Redis for slug:', name);
+            console.error('No AB test routing data found in Redis for path:', name);
 
             // fallback если что-то с Redis, забираем данные прямо из CRM
             const routingData = await getABTestRoutingFromCRM();
             routingList = routingData.routing;
         } else {
+            console.info('AB test routing data found in Redis for path:', name);
             routingList = routingData.data.routing;
         }
 
