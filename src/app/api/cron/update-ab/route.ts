@@ -9,7 +9,7 @@ export async function GET() {
   try {
 
     // Дергаем endpoint сохранения времени
-    const saveResponse = await fetch(`${appUrl}/api/ab/save`, {
+    const saveResponse = await fetch(`${appUrl}/funnel/api/ab/save`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
