@@ -1,8 +1,8 @@
 {
     "crons": [
       {
-        "path": "/funnel/api/cron/update",
-        "schedule": "55 8 * * *"
+        "path": "/funnel/api/cron/update-ab",
+        "schedule": "20 9 * * *"
       }
     ]
   }
