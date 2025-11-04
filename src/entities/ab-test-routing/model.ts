@@ -14,7 +14,7 @@ export interface RouteConfig {
     paywalls: Paywall[];
 }
 
-interface Routing {
+export interface Routing {
     [url: string]: RouteConfig;
 }
 

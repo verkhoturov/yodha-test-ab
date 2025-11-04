@@ -1,42 +1,19 @@
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
+import { type NextRequest } from 'next/server';
 
 import { log } from '@/shared/utils';
 import { collectRequestMeta } from '@/shared/utils';
-import { getRoutingDataFromRedis, RouteConfig, Funnel } from '@/entities/ab-test-routing';
+import {
+    getRoutingDataFromRedis,
+    Funnel,
+    selectFunnelByPercent,
+    getConfigFromRouting,
+} from '@/entities/ab-test-routing';
 
 export const dynamic = 'force-dynamic';
 
-interface RouteParams {
-    params: {
-        name: string;
-    };
-}
-
-// Функция для выбора воронки на основе percent
-function selectFunnelByPercent(funnels: Funnel[]): { funnel: Funnel; bucket: string } {
-    const totalPercent = funnels.reduce((sum, funnel) => sum + funnel.percent, 0);
-    const random = Math.random() * totalPercent;
-
-    let cumulative = 0;
-
-    for (let i = 0; i < funnels.length; i++) {
-        const funnel = funnels[i];
-        cumulative += funnel.percent;
-
-        if (random <= cumulative) {
-            return {
-                funnel,
-                bucket: `Funnel_${i + 1}`, // Funnel_1, Funnel_2 и т.д.
-            };
-        }
-    }
-
-    // Fallback - первая воронка
-    return { funnel: funnels[0], bucket: 'Funnel_1' };
-}
-
-export async function GET(request: Request, { params }: RouteParams) {
+export async function GET(request: NextRequest, { params }: { params: { name: string } }) {
     const { name } = params;
     const { origin, search } = new URL(request.url);
 
@@ -51,21 +28,8 @@ export async function GET(request: Request, { params }: RouteParams) {
             return NextResponse.redirect(`${origin}/404`, { status: 302 });
         }
 
-        const { routing: routingList } = routingData.data;
-
         // 2. Ищем конфигурацию для текущего name
-        let foundConfig: RouteConfig | null = null;
-
-        for (const [url, config] of Object.entries(routingList)) {
-            // Извлекаем name из URL (последняя часть пути)
-            const urlParts = url.split('/');
-            const urlName = urlParts[urlParts.length - 1];
-
-            if (urlName === name) {
-                foundConfig = config;
-                break;
-            }
-        }
+        const foundConfig = getConfigFromRouting(routingData.data.routing, name);
 
         if (!foundConfig) {
             console.error('No routing config found for name:', name);
