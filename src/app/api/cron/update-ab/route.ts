@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server'
 
 export async function GET() {
+  // Получаем URL нашего же приложения
+  const appUrl = process.env.VERCEL_URL 
+    ? `https://${process.env.VERCEL_URL}`
+    : 'http://localhost:3000'
+
   try {
-    // Получаем URL нашего же приложения
-    const appUrl = process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}`
-      : process.env.NEXTAUTH_URL || 'http://localhost:3000'
 
     // Дергаем endpoint сохранения времени
     const saveResponse = await fetch(`${appUrl}/api/ab/save`, {
@@ -28,7 +29,7 @@ export async function GET() {
     })
 
   } catch (error: any) {
-    console.error('Cron job failed:', error.message)
+    console.error('Cron job failed:', {err: error.message, appUrl},)
 
     return NextResponse.json({
       status: 'error',
